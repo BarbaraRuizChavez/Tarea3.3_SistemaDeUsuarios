@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -52,6 +53,82 @@ namespace SistemaDeUsuarios
             {
                 throw new Exception("Error al registrar el usuario: " + ex.Message);
             }
+        }
+
+        public bool ValidarUsuario(string usuario, string password)
+        {
+            try
+            {
+                using (var conexion = ConexionBD.ObtenerConexion())
+                {
+                    conexion.Open();
+
+                    string query = "SELECT COUNT(*) FROM usuarios WHERE usuario=@usuario AND password=@password";
+                    MySqlCommand cmd = new MySqlCommand(query, conexion);
+                    cmd.Parameters.AddWithValue("@usuario", usuario);
+                    cmd.Parameters.AddWithValue("@password", ConvertirSHA1(password));
+
+                    int count = Convert.ToInt32(cmd.ExecuteScalar());
+                    return count > 0; // Si encontró usuario válido
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al validar usuario: " + ex.Message);
+            }
+        }
+
+        private string ConvertirSHA1(string input)
+        {
+            using (SHA1 sha1 = SHA1.Create())
+            {
+                byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+                byte[] hashBytes = sha1.ComputeHash(inputBytes);
+
+                StringBuilder sb = new StringBuilder();
+                foreach (byte b in hashBytes)
+                {
+                    sb.Append(b.ToString("x2"));
+                }
+                return sb.ToString();
+            }
+        }
+
+        public List<Usuario> ObtenerUsuarios()
+        {
+            List<Usuario> lista = new List<Usuario>();
+
+            try
+            {
+                using (var conexion = ConexionBD.ObtenerConexion())
+                {
+                    conexion.Open();
+
+                    string query = "SELECT nombre, apellidos, usuario, correo FROM usuarios";
+                    MySqlCommand cmd = new MySqlCommand(query, conexion);
+                    MySqlDataReader dr = cmd.ExecuteReader();
+
+                    while (dr.Read())
+                    {
+                        Usuario u = new Usuario
+                        {
+                            Nombre = dr["nombre"].ToString(),
+                            Apellidos = dr["apellidos"].ToString(),
+                            NombreUsuario = dr["usuario"].ToString(),
+                            Correo = dr["correo"].ToString()
+                        };
+                        lista.Add(u);
+                    }
+
+                    dr.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al obtener usuarios: " + ex.Message);
+            }
+
+            return lista;
         }
     }
 }

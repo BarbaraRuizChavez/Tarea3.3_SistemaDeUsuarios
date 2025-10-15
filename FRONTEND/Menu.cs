@@ -1,22 +1,20 @@
-﻿using System;
+﻿using SistemaDeUsuarios;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using MySql.Data.MySqlClient;
 using System.IO;
+using System.Text;
+using System.Windows.Forms;
 
 namespace SistemaDeUsuarios
 {
     public partial class Menu : Form
     {
+        private readonly UsuarioRepository usuarioRepo;
+
         public Menu()
         {
             InitializeComponent();
+            usuarioRepo = new UsuarioRepository();
         }
 
         private void btnSalir_Click(object sender, EventArgs e)
@@ -26,29 +24,19 @@ namespace SistemaDeUsuarios
 
         private void btnVer_Click(object sender, EventArgs e)
         {
-            string conexion = "server=localhost;port=3306;database=sistemaUsuarios;user=root;password=b2r4c6h8;SslMode=Required;";
-
-
-            using (MySqlConnection cn = new MySqlConnection(conexion))
+            try
             {
-                try
-                {
-                    cn.Open();
-                    string consulta = "SELECT nombre, apellidos, usuario, correo FROM usuarios";
-                    MySqlCommand cmd = new MySqlCommand(consulta, cn);
-                    MySqlDataReader dr = cmd.ExecuteReader();
+                dgvUsuarios.Rows.Clear();
+                List<Usuario> usuarios = usuarioRepo.ObtenerUsuarios();
 
-                    dgvUsuarios.Rows.Clear();
-                    while (dr.Read())
-                    {
-                        dgvUsuarios.Rows.Add(dr["nombre"], dr["apellidos"], dr["usuario"], dr["correo"]);
-                    }
-                    dr.Close();
-                }
-                catch (Exception ex)
+                foreach (var u in usuarios)
                 {
-                    MessageBox.Show("Error al conectar: " + ex.Message);
+                    dgvUsuarios.Rows.Add(u.Nombre, u.Apellidos, u.NombreUsuario, u.Correo);
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al obtener los usuarios: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -56,6 +44,11 @@ namespace SistemaDeUsuarios
         {
             Registro reg = new Registro();
             reg.ShowDialog();
+        }
+
+        private void btnArchivo_Click(object sender, EventArgs e)
+        {
+            ExportarDataGridViewAExcel(dgvUsuarios);
         }
 
         private void ExportarDataGridViewAExcel(DataGridView dgv)
@@ -91,13 +84,12 @@ namespace SistemaDeUsuarios
                                 string[] cells = new string[dgv.Columns.Count];
                                 for (int i = 0; i < dgv.Columns.Count; i++)
                                 {
-                                    cells[i] = row.Cells[i].Value?.ToString().Replace(",", ";") ?? ""; // Evita conflictos con comas
+                                    cells[i] = row.Cells[i].Value?.ToString().Replace(",", ";") ?? "";
                                 }
                                 sb.AppendLine(string.Join(",", cells));
                             }
                         }
 
-                        // Guardar archivo
                         File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
                         MessageBox.Show("Datos exportados correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
@@ -108,11 +100,7 @@ namespace SistemaDeUsuarios
                 }
             }
         }
-
-        private void btnArchivo_Click(object sender, EventArgs e)
-        {
-            ExportarDataGridViewAExcel(dgvUsuarios);
-        }
     }
 }
+
 
