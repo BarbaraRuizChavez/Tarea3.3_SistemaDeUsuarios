@@ -61,16 +61,23 @@ namespace SistemaDeUsuarios
             {
                 using (var conexion = ConexionBD.ObtenerConexion())
                 {
-                    conexion.Open();
+                    if (conexion.State != System.Data.ConnectionState.Open)
+                        conexion.Open();
 
                     string query = "SELECT COUNT(*) FROM usuarios WHERE usuario=@usuario AND password=@password";
-                    MySqlCommand cmd = new MySqlCommand(query, conexion);
-                    cmd.Parameters.AddWithValue("@usuario", usuario);
-                    cmd.Parameters.AddWithValue("@password", ConvertirSHA1(password));
+                    using (MySqlCommand cmd = new MySqlCommand(query, conexion))
+                    {
+                        cmd.Parameters.AddWithValue("@usuario", usuario);
+                        cmd.Parameters.AddWithValue("@password", ConvertirSHA1(password));
 
-                    int count = Convert.ToInt32(cmd.ExecuteScalar());
-                    return count > 0; // Si encontró usuario válido
+                        int count = Convert.ToInt32(cmd.ExecuteScalar());
+                        return count > 0;
+                    }
                 }
+            }
+            catch (MySqlException ex)
+            {
+                throw new Exception("Error de MySQL al validar usuario: " + ex.Message);
             }
             catch (Exception ex)
             {
@@ -87,9 +94,8 @@ namespace SistemaDeUsuarios
 
                 StringBuilder sb = new StringBuilder();
                 foreach (byte b in hashBytes)
-                {
                     sb.Append(b.ToString("x2"));
-                }
+
                 return sb.ToString();
             }
         }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 
 namespace SistemaDeUsuarios
 {
@@ -18,10 +12,9 @@ namespace SistemaDeUsuarios
 
         public static MySqlConnection ObtenerConexion()
         {
-            var conexion = new MySqlConnection(cadenaConexion);
-            conexion.Open();
-            return conexion;
+            return new MySqlConnection(cadenaConexion);
         }
     }
 }
+
 
